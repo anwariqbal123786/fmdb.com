@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuel Management Dashboard — SComm & STL</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy2: #0f2040;
+    --navy3: #162d52;
+    --blue: #1e4080;
+    --accent: #2d7aee;
+    --accent2: #4a9eff;
+    --gold: #f0a500;
+    --amber: #e8820c;
+    --green: #00c48c;
+    --red: #e53e3e;
+    --red-soft: #fc5757;
+    --white: #f0f4ff;
+    --gray: #8899bb;
+    --border: rgba(45, 122, 238, 0.15);
+    --card-bg: rgba(15, 32, 64, 0.85);
+    --card-border: rgba(45, 122, 238, 0.2);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--navy);
+    color: var(--white);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(30, 64, 128, 0.4) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(45, 122, 238, 0.15) 0%, transparent 50%),
+      linear-gradient(180deg, #080f1e 0%, #0a1628 100%);
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: linear-gradient(135deg, #0c1e3d 0%, #0a1628 100%);
+    border-bottom: 1px solid var(--card-border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .logo-icon {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .header h1 {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.4rem; font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--white);
+  }
+  .header h1 span { color: var(--accent2); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .date-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem; color: var(--accent2);
+    background: rgba(45, 122, 238, 0.1);
+    border: 1px solid var(--card-border);
+    padding: 5px 12px; border-radius: 4px;
+  }
+  .live-dot { width: 7px; height: 7px; background: var(--green); border-radius: 50%;
+    box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+  .live-label { font-size: 0.7rem; color: var(--green); font-weight: 500; }
+
+  /* ===== FILTERS ===== */
+  .filters-bar {
+    padding: 12px 28px;
+    background: rgba(10, 22, 40, 0.6);
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  }
+  .filter-label { font-size: 0.7rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+  .filter-group { display: flex; gap: 8px; align-items: center; }
+  .filter-btn {
+    font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 0.78rem;
+    padding: 4px 12px; border-radius: 4px; border: 1px solid var(--card-border);
+    background: transparent; color: var(--gray); cursor: pointer; transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .filter-btn.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    box-shadow: 0 0 12px rgba(45, 122, 238, 0.4);
+  }
+  .filter-btn:hover:not(.active) { border-color: var(--accent2); color: var(--white); }
+
+  .fuel-toggle { display: flex; gap: 6px; }
+  .fuel-btn {
+    font-size: 0.72rem; padding: 4px 10px; border-radius: 4px; border: 1px solid var(--card-border);
+    background: transparent; color: var(--gray); cursor: pointer; transition: all 0.2s;
+  }
+  .fuel-btn.active { background: rgba(240, 165, 0, 0.2); border-color: var(--gold); color: var(--gold); }
+
+  .filter-sep { width: 1px; height: 24px; background: var(--border); }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main { padding: 20px 28px; max-width: 1600px; margin: 0 auto; }
+
+  /* ===== KPI CARDS ===== */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px; margin-bottom: 20px;
+  }
+  @media (max-width: 1200px) { .kpi-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .kpi-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .kpi-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+  .kpi-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+  .kpi-card.amber::before { background: linear-gradient(90deg, var(--amber), transparent); }
+  .kpi-card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+  .kpi-card.blue::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .kpi-card.gold::before { background: linear-gradient(90deg, var(--gold), transparent); }
+
+  .kpi-icon { font-size: 1.2rem; margin-bottom: 8px; opacity: 0.8; }
+  .kpi-label { font-size: 0.65rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .kpi-value {
+    font-family: 'Rajdhani', sans-serif; font-size: 1.7rem; font-weight: 700;
+    line-height: 1; margin-bottom: 4px;
+  }
+  .kpi-card.green .kpi-value { color: var(--green); }
+  .kpi-card.amber .kpi-value { color: var(--amber); }
+  .kpi-card.red .kpi-value { color: var(--red-soft); }
+  .kpi-card.blue .kpi-value { color: var(--accent2); }
+  .kpi-card.gold .kpi-value { color: var(--gold); }
+
+  .kpi-sub { font-size: 0.65rem; color: var(--gray); display: flex; align-items: center; gap: 4px; }
+  .kpi-trend { font-size: 0.7rem; font-weight: 600; }
+  .kpi-trend.up { color: var(--green); }
+  .kpi-trend.down { color: var(--red-soft); }
+
+  /* ===== SECTION TITLE ===== */
+  .section-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; font-weight: 600;
+    color: var(--gray); text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ===== CHARTS GRID ===== */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 14px; margin-bottom: 14px;
+  }
+  .charts-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px; margin-bottom: 14px;
+  }
+  .charts-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px; margin-bottom: 14px;
+  }
+  .charts-grid-full {
+    margin-bottom: 14px;
+  }
+
+  .chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 18px;
+    position: relative;
+  }
+  .chart-card.span-2 { grid-column: span 2; }
+  .chart-title {
+    font-family: 'Rajdhani', sans-serif; font-size: 0.85rem; font-weight: 600;
+    color: var(--white); margin-bottom: 2px; letter-spacing: 0.04em;
+  }
+  .chart-caption { font-size: 0.62rem; color: var(--gray); margin-bottom: 12px; font-style: italic; }
+  .chart-wrap { position: relative; }
+
+  /* ===== FORWARD PLANNING TABLE ===== */
+  .planning-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+  .planning-table th {
+    background: rgba(45, 122, 238, 0.12);
+    color: var(--accent2); text-transform: uppercase;
+    letter-spacing: 0.08em; font-size: 0.62rem; font-weight: 600;
+    padding: 8px 10px; border-bottom: 1px solid var(--card-border); text-align: right;
+  }
+  .planning-table th:first-child, .planning-table th:nth-child(2) { text-align: left; }
+  .planning-table td {
+    padding: 7px 10px; border-bottom: 1px solid rgba(45,122,238,0.06);
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.68rem; text-align: right;
+    transition: background 0.15s;
+  }
+  .planning-table td:first-child, .planning-table td:nth-child(2) {
+    text-align: left; font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .planning-table tr:hover td { background: rgba(45, 122, 238, 0.05); }
+  .planning-table tr.rio-row td {
+    font-weight: 600; color: var(--accent2);
+    background: rgba(45, 122, 238, 0.08);
+    font-family: 'Rajdhani', sans-serif; font-size: 0.8rem; letter-spacing: 0.05em;
+  }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 0.62rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .badge.safe { background: rgba(0, 196, 140, 0.15); color: var(--green); border: 1px solid rgba(0,196,140,0.3); }
+  .badge.risk { background: rgba(232, 130, 12, 0.15); color: var(--amber); border: 1px solid rgba(232,130,12,0.3); }
+  .badge.critical { background: rgba(229, 62, 62, 0.15); color: var(--red-soft); border: 1px solid rgba(229,62,62,0.3); }
+
+  /* ===== GAUGE ROW ===== */
+  .gauge-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 14px;
+  }
+  .gauge-card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .gauge-title { font-family: 'Rajdhani', sans-serif; font-size: 0.9rem; font-weight: 700;
+    color: var(--accent2); margin-bottom: 4px; letter-spacing: 0.05em; }
+  .gauge-pct { font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 700; line-height: 1.1; }
+  .gauge-sub { font-size: 0.62rem; color: var(--gray); margin-top: 4px; }
+  .gauge-bar-wrap { height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; margin: 10px 0 6px; overflow: hidden; }
+  .gauge-bar { height: 100%; border-radius: 4px; transition: width 1s ease; }
+
+  /* ===== INSIGHTS PANEL ===== */
+  .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .insights-card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 10px; padding: 18px;
+  }
+  .insight-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+  .insight-text { font-size: 0.72rem; color: var(--white); line-height: 1.5; }
+  .insight-text strong { color: var(--accent2); }
+
+  .alert-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 10px; border-radius: 6px; margin-bottom: 6px;
+    border-left: 3px solid;
+  }
+  .alert-item.critical { background: rgba(229,62,62,0.08); border-color: var(--red); }
+  .alert-item.risk { background: rgba(232,130,12,0.08); border-color: var(--amber); }
+  .alert-item.safe { background: rgba(0,196,140,0.08); border-color: var(--green); }
+  .alert-sc { font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.82rem; flex: 1; }
+  .alert-detail { font-family: 'IBM Plex Mono', monospace; font-size: 0.62rem; color: var(--gray); }
+
+  /* ===== HEATMAP ===== */
+  .heatmap-wrap { overflow-x: auto; }
+  .heatmap-table { border-collapse: collapse; font-size: 0.62rem; width: 100%; }
+  .heatmap-table th { color: var(--gray); padding: 4px 6px; font-size: 0.6rem; text-align: center; }
+  .heatmap-table td {
+    padding: 3px 6px; text-align: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem;
+    border: 1px solid rgba(45,122,238,0.05);
+    border-radius: 2px; transition: transform 0.1s;
+  }
+  .heatmap-table td:hover { transform: scale(1.2); z-index: 10; position: relative; }
+  .heatmap-table td.sc-label { text-align: left; font-family: 'IBM Plex Sans', sans-serif; color: var(--gray); padding-right: 8px; }
+
+  /* ===== FOOTER ===== */
+  .footer {
+    text-align: center; padding: 16px;
+    font-size: 0.62rem; color: var(--gray);
+    border-top: 1px solid var(--border); margin-top: 20px;
+  }
+
+  /* ===== SCORE CARD ===== */
+  .score-wrap { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 10px 0; }
+  .score-big { font-family: 'Rajdhani', sans-serif; font-size: 3.5rem; font-weight: 700; color: var(--amber); line-height: 1; }
+  .score-label { font-size: 0.7rem; color: var(--gray); text-transform: uppercase; letter-spacing: 0.1em; }
+  .score-detail { font-size: 0.65rem; color: var(--gray); line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-icon">⛽</div>
+    <div>
+      <h1>Fuel Management <span>Dashboard</span></h1>
+      <div style="font-size:0.65rem;color:var(--gray);margin-top:2px;">SComm & STL · All RIOs · April 2026</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="live-dot"></div>
+      <span class="live-label">LIVE DATA</span>
+    </div>
+    <div class="date-badge">As of 14-Apr-2026</div>
+    <button onclick="window.print()" style="background:rgba(45,122,238,0.1);border:1px solid var(--card-border);color:var(--accent2);padding:5px 12px;border-radius:4px;cursor:pointer;font-size:0.72rem;">⬇ Export</button>
+  </div>
+</div>
+
+<!-- FILTERS -->
+<div class="filters-bar">
+  <span class="filter-label">RIO Filter</span>
+  <div class="filter-group" id="rio-filters">
+    <button class="filter-btn active" onclick="filterRIO('ALL', this)">ALL</button>
+    <button class="filter-btn" onclick="filterRIO('RIO1', this)">RIO1</button>
+    <button class="filter-btn" onclick="filterRIO('RIO2', this)">RIO2</button>
+    <button class="filter-btn" onclick="filterRIO('RIO3', this)">RIO3</button>
+    <button class="filter-btn" onclick="filterRIO('RIO4', this)">RIO4</button>
+  </div>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Type</span>
+  <div class="filter-group fuel-toggle">
+    <button class="fuel-btn active" onclick="filterType('ALL', this)">All</button>
+    <button class="fuel-btn" onclick="filterType('SComm', this)">SComm</button>
+    <button class="fuel-btn" onclick="filterType('STL', this)">STL</button>
+  </div>
+  <div class="filter-sep"></div>
+  <span class="filter-label">Fuel</span>
+  <div class="filter-group fuel-toggle">
+    <button class="fuel-btn active" onclick="filterFuel('ALL', this)">All</button>
+    <button class="fuel-btn" onclick="filterFuel('DG', this)">DG (Diesel)</button>
+    <button class="fuel-btn" onclick="filterFuel('PG', this)">PG (Petrol)</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpi-grid">
+    <div class="kpi-card blue">
+      <div class="kpi-icon">📦</div>
+      <div class="kpi-label">Total Present Stock</div>
+      <div class="kpi-value" id="kpi-stock">204,286</div>
+      <div class="kpi-sub">litres across all RIOs</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-icon">🛢️</div>
+      <div class="kpi-label">Total Purchased (Apr)</div>
+      <div class="kpi-value" id="kpi-purchase">17,347</div>
+      <div class="kpi-sub">litres since Apr 1</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-icon">⚡</div>
+      <div class="kpi-label">Total Consumed (Apr)</div>
+      <div class="kpi-value" id="kpi-usage">23,457</div>
+      <div class="kpi-sub">litres since Apr 1</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">Stock Coverage Days</div>
+      <div class="kpi-value" id="kpi-days">77</div>
+      <div class="kpi-sub">days at current burn rate</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-icon">⚠️</div>
+      <div class="kpi-label">Gap vs Requirement</div>
+      <div class="kpi-value" id="kpi-gap">−33,718</div>
+      <div class="kpi-sub" id="kpi-gap-pct">ltr · 85.8% covered</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-icon">🎯</div>
+      <div class="kpi-label">Overall Coverage</div>
+      <div class="kpi-value" id="kpi-coverage">85.8%</div>
+      <div class="kpi-sub">of Apr–Jun requirement</div>
+    </div>
+  </div>
+
+  <!-- RIO GAUGES -->
+  <div class="section-title">Regional Coverage Gauges</div>
+  <div class="gauge-grid" id="gauge-grid">
+    <!-- Built by JS -->
+  </div>
+
+  <!-- ROW 1: LINE CHART + DONUT -->
+  <div class="section-title">April Daily Trend &amp; Stock Distribution</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Daily Purchase vs Usage — April 2026 (All RIOs)</div>
+      <div class="chart-caption">Peak usage on Apr 7 (6,199 ltr); highest purchase on Apr 13 (4,000 ltr)</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="chart-trend"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Stock Distribution by RIO</div>
+      <div class="chart-caption">RIO3 holds 74.8% of total fuel stock</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="chart-donut"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 2: GROUPED BAR + STACKED -->
+  <div class="section-title">RIO-Level Purchase, Usage &amp; Stock Analysis</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Purchase vs Usage vs Present Stock by RIO</div>
+      <div class="chart-caption">RIO3 dominates volume; RIO2 has lowest stock buffer</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="chart-grouped-bar"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Coverage % vs Target by RIO</div>
+      <div class="chart-caption">RIO1 SComm at 49% — CRITICAL. All SComm arms below 70%</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="chart-coverage"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW 3: AREA CHART + WATERFALL -->
+  <div class="section-title">Daily RIO Stock Level &amp; Cumulative Movement</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Daily Purchase vs Usage by RIO — April 2026</div>
+      <div class="chart-caption">RIO3 drives majority of daily consumption due to large STL fleet</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="chart-rio-daily"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cumulative Net Stock Change — April 2026</div>
+      <div class="chart-caption">Net drawdown of ~6,100 ltr over 14 days of April</div>
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="chart-waterfall"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div class="section-title">Subcenter Consumption Heatmap — April 2026</div>
+  <div class="chart-card charts-grid-full" style="margin-bottom:14px;">
+    <div class="chart-title">Daily Fuel Usage by Subcenter (Litres)</div>
+    <div class="chart-caption">Darker = higher consumption. Khulna, Barishal and Jashore are highest consumers.</div>
+    <div class="heatmap-wrap" id="heatmap-container" style="margin-top:10px;">
+      <!-- Built by JS -->
+    </div>
+  </div>
+
+  <!-- ROW: SC RANKED + DG/PG SPLIT -->
+  <div class="section-title">Subcenter Rankings &amp; Fuel Type Split</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Subcenters Ranked by Apr Consumption (Top 12)</div>
+      <div class="chart-caption">Khulna leads with highest monthly usage; Barishal and Jashore follow</div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="chart-sc-rank"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">SComm vs STL — Requirement Split by RIO</div>
+      <div class="chart-caption">STL operations account for the dominant share of requirement in all RIOs</div>
+      <div class="chart-wrap" style="height:280px;">
+        <canvas id="chart-scomm-stl"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORWARD PLANNING -->
+  <div class="section-title">Forward Planning — Apr–Jun 2026 Requirements</div>
+  <div class="chart-card charts-grid-full" style="margin-bottom:14px;">
+    <div class="chart-title">Subcenter Stock vs Requirement Scorecard</div>
+    <div class="chart-caption">🔴 Critical = &lt;70% covered | 🟡 At Risk = 70–89% | 🟢 Safe = ≥90%</div>
+    <div style="overflow-x:auto;margin-top:10px;">
+      <table class="planning-table" id="planning-table">
+        <!-- Built by JS -->
+      </table>
+    </div>
+  </div>
+
+  <!-- ALERTS + INSIGHTS -->
+  <div class="section-title">Procurement Alerts &amp; AI Insights</div>
+  <div class="insights-grid">
+    <div class="insights-card">
+      <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;color:var(--red-soft);margin-bottom:12px;">🚨 Procurement Alert Board</div>
+      <div id="alert-board"><!-- Built by JS --></div>
+    </div>
+    <div class="insights-card">
+      <div style="font-family:'Rajdhani',sans-serif;font-weight:700;font-size:0.9rem;color:var(--accent2);margin-bottom:12px;">💡 Executive Insights</div>
+      <div id="insights-list"><!-- Built by JS --></div>
+      <div class="score-wrap" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <div>
+          <div class="score-big" id="health-score">67</div>
+          <div class="score-label">/ 100 Stock Health</div>
+        </div>
+        <div class="score-detail" id="score-detail">
+          Loading...
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Fuel Management Dashboard · SComm & STL Operations · Data as of 14-April-2026 · Generated by Operations Analytics
+</div>
+
+<script>
+// ===== RAW DATA =====
+const RAW_DATA = [
+  {rio:'RIO1',sc:'Banani',type:'SComm',stock:744,req:754.5,aprPurchase:300,aprUsage:7},
+  {rio:'RIO1',sc:'Banani',type:'STL',stock:0,req:0,aprPurchase:0,aprUsage:0},
+  {rio:'RIO1',sc:'Dhanmondi',type:'SComm',stock:525.16,req:484.73,aprPurchase:0,aprUsage:6},
+  {rio:'RIO1',sc:'Dhanmondi',type:'STL',stock:6577.86,req:4637.66,aprPurchase:0,aprUsage:12.22},
+  {rio:'RIO1',sc:'Gazipur',type:'SComm',stock:2589.37,req:8683.17,aprPurchase:1395,aprUsage:1018},
+  {rio:'RIO1',sc:'Gazipur',type:'STL',stock:59.37,req:360,aprPurchase:120,aprUsage:0},
+  {rio:'RIO1',sc:'Kawran bazar',type:'SComm',stock:1024,req:1490.33,aprPurchase:500,aprUsage:33},
+  {rio:'RIO1',sc:'Kawran bazar',type:'STL',stock:254,req:540,aprPurchase:0,aprUsage:0},
+  {rio:'RIO1',sc:'Mirpur',type:'SComm',stock:501.28,req:251.44,aprPurchase:0,aprUsage:10.15},
+  {rio:'RIO1',sc:'Mirpur',type:'STL',stock:40,req:90,aprPurchase:0,aprUsage:0},
+  {rio:'RIO1',sc:'Narayanganj',type:'SComm',stock:470.6,req:714.96,aprPurchase:90,aprUsage:55},
+  {rio:'RIO1',sc:'Narayanganj',type:'STL',stock:9480.15,req:9632.19,aprPurchase:140,aprUsage:56},
+  {rio:'RIO1',sc:'Paltan',type:'SComm',stock:1682,req:2661.75,aprPurchase:180,aprUsage:10},
+  {rio:'RIO1',sc:'Paltan',type:'STL',stock:2532.5,req:1536.26,aprPurchase:0,aprUsage:0},
+  {rio:'RIO1',sc:'Savar',type:'SComm',stock:207.67,req:1870,aprPurchase:100,aprUsage:11.76},
+  {rio:'RIO1',sc:'Savar',type:'STL',stock:1037.6,req:1470,aprPurchase:0,aprUsage:16.53},
+  {rio:'RIO1',sc:'Uttara',type:'SComm',stock:990.37,req:950.4,aprPurchase:0,aprUsage:0},
+  {rio:'RIO1',sc:'Uttara',type:'STL',stock:93.05,req:270,aprPurchase:21,aprUsage:6},
+  {rio:'RIO2',sc:"Cox's Bazar",type:'SComm',stock:737.47,req:1720,aprPurchase:267.39,aprUsage:196},
+  {rio:'RIO2',sc:"Cox's Bazar",type:'STL',stock:182.99,req:180,aprPurchase:60,aprUsage:0},
+  {rio:'RIO2',sc:'CTG_North',type:'SComm',stock:612.94,req:920,aprPurchase:320,aprUsage:185},
+  {rio:'RIO2',sc:'CTG_North',type:'STL',stock:20,req:90,aprPurchase:20,aprUsage:0},
+  {rio:'RIO2',sc:'CTG_South',type:'SComm',stock:1390.58,req:1900,aprPurchase:400,aprUsage:310},
+  {rio:'RIO2',sc:'CTG_South',type:'STL',stock:33.79,req:120,aprPurchase:30,aprUsage:0},
+  {rio:'RIO2',sc:'Cumilla',type:'SComm',stock:917.28,req:1540,aprPurchase:270,aprUsage:133},
+  {rio:'RIO2',sc:'Cumilla',type:'STL',stock:364.67,req:500,aprPurchase:150,aprUsage:44.7},
+  {rio:'RIO2',sc:'Feni',type:'SComm',stock:907.1,req:940,aprPurchase:370,aprUsage:237},
+  {rio:'RIO2',sc:'Feni',type:'STL',stock:47,req:90,aprPurchase:30,aprUsage:0},
+  {rio:'RIO2',sc:'Sylhet',type:'SComm',stock:966.01,req:1300,aprPurchase:200,aprUsage:229},
+  {rio:'RIO2',sc:'Sylhet',type:'STL',stock:445.42,req:600,aprPurchase:220,aprUsage:99.3},
+  {rio:'RIO3',sc:'Barishal',type:'SComm',stock:799.93,req:780,aprPurchase:725,aprUsage:680},
+  {rio:'RIO3',sc:'Barishal',type:'STL',stock:32647.92,req:45114.24,aprPurchase:984,aprUsage:3858.76},
+  {rio:'RIO3',sc:'Faridpur',type:'SComm',stock:534.58,req:1189.4,aprPurchase:0,aprUsage:31.45},
+  {rio:'RIO3',sc:'Faridpur',type:'STL',stock:17259,req:12108.14,aprPurchase:1600,aprUsage:537.97},
+  {rio:'RIO3',sc:'Jashore',type:'SComm',stock:1087.69,req:1532.4,aprPurchase:40,aprUsage:72},
+  {rio:'RIO3',sc:'Jashore',type:'STL',stock:22316.3,req:24375.05,aprPurchase:500,aprUsage:2912},
+  {rio:'RIO3',sc:'Khulna',type:'SComm',stock:337.48,req:738.8,aprPurchase:150,aprUsage:183},
+  {rio:'RIO3',sc:'Khulna',type:'STL',stock:40845.17,req:45116.51,aprPurchase:200,aprUsage:2875},
+  {rio:'RIO3',sc:'Kushtia',type:'SComm',stock:309.87,req:444.2,aprPurchase:50,aprUsage:138},
+  {rio:'RIO3',sc:'Kushtia',type:'STL',stock:24243.83,req:24620.56,aprPurchase:50,aprUsage:1248},
+  {rio:'RIO3',sc:'Shariatpur',type:'SComm',stock:160.76,req:316.16,aprPurchase:0,aprUsage:9.7},
+  {rio:'RIO3',sc:'Shariatpur',type:'STL',stock:12300.8,req:14479.82,aprPurchase:800,aprUsage:1107},
+  {rio:'RIO4',sc:'Bogura',type:'SComm',stock:738.93,req:2020.84,aprPurchase:100,aprUsage:93.5},
+  {rio:'RIO4',sc:'Bogura',type:'STL',stock:525.67,req:550.4,aprPurchase:70,aprUsage:5.5},
+  {rio:'RIO4',sc:'Mymensingh',type:'SComm',stock:507.73,req:627.6,aprPurchase:100,aprUsage:136},
+  {rio:'RIO4',sc:'Mymensingh',type:'STL',stock:434.46,req:1597.94,aprPurchase:160,aprUsage:109},
+  {rio:'RIO4',sc:'Rajshahi',type:'SComm',stock:486.98,req:535.2,aprPurchase:0,aprUsage:0},
+  {rio:'RIO4',sc:'Rajshahi',type:'STL',stock:11735.27,req:11095.64,aprPurchase:300,aprUsage:83},
+  {rio:'RIO4',sc:'Rangpur',type:'SComm',stock:458.53,req:609.6,aprPurchase:440,aprUsage:53},
+  {rio:'RIO4',sc:'Rangpur',type:'STL',stock:598.17,req:2002.48,aprPurchase:397,aprUsage:113.99},
+  {rio:'RIO4',sc:'Tangail',type:'SComm',stock:116.9,req:672,aprPurchase:50,aprUsage:65},
+  {rio:'RIO4',sc:'Tangail',type:'STL',stock:404.43,req:1180,aprPurchase:0,aprUsage:48},
+];
+
+const DAILY = {
+  dates: ['Apr-01','Apr-02','Apr-03','Apr-04','Apr-05','Apr-06','Apr-07','Apr-08','Apr-09','Apr-10','Apr-11','Apr-12','Apr-13','Apr-14'],
+  purchase: [1170,430,650,950,2359,1444,970,545,689,1480,360,855,4000,1195],
+  usage: [637,685,738,2310,1715,1727,6199,3347,2609,917,1513,817,1491,1269],
+  forecast: [256771,256771,256771,256771,256771,256771,256771,239766,239766,239066,238004,238004,238004,238004],
+  stockLevel: [214245,213884,213796,212436,212907,212706,207340,204320,202402,202965,201808,201850,204359,204286],
+  rio: {
+    RIO1: {purchase:[200,0,0,0,580,90,200,0,0,330,100,150,830,90],usage:[222.8,42.5,64.1,124.6,272.5,97,157.8,56.8,21.4,95.5,158.4,100,122.4,160]},
+    RIO2: {purchase:[110,200,260,100,250,0,0,0,0,0,150,0,270,115],usage:[49.6,52.1,72.65,220,165,182,455,370,260,52,168,76,120,160]},
+    RIO3: {purchase:[750,230,300,750,1479,1354,770,545,689,1100,110,705,2900,990],usage:[255.7,529.6,552.8,1843,1167,1340,5470,2840,2268,720,1108,600,1199,899]},
+    RIO4: {purchase:[110,0,90,100,50,0,0,0,0,50,0,0,0,0],usage:[108.8,60.5,48.2,122.4,110.5,108,116.2,80.2,59.6,49.5,78.6,41,49.6,50]}
+  }
+};
+
+const RIO_SCOMM_STL = {
+  RIO1: {scomm:{req:17861,stock:8734}, stl:{req:18536,stock:20075}},
+  RIO2: {scomm:{req:8320,stock:5532}, stl:{req:1580,stock:1094}},
+  RIO3: {scomm:{req:5001,stock:3230}, stl:{req:165814,stock:149613}},
+  RIO4: {scomm:{req:4465,stock:2309}, stl:{req:16426,stock:13698}},
+};
+
+// ===== CHART CONFIG =====
+const COLORS = {
+  RIO1: '#2d7aee', RIO2: '#f0a500', RIO3: '#00c48c', RIO4: '#e53e3e',
+  purchase: '#00c48c', usage: '#e8820c', forecast: '#8899bb', stock: '#2d7aee'
+};
+
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.color = '#8899bb';
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+
+// ===== STATE =====
+let activeRIO = 'ALL', activeType = 'ALL', activeFuel = 'ALL';
+let charts = {};
+
+// ===== FILTER FUNCTIONS =====
+function filterRIO(rio, btn) {
+  activeRIO = rio;
+  document.querySelectorAll('#rio-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateAll();
+}
+function filterType(type, btn) {
+  activeType = type;
+  btn.parentElement.querySelectorAll('.fuel-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateAll();
+}
+function filterFuel(fuel, btn) {
+  activeFuel = fuel;
+  btn.parentElement.querySelectorAll('.fuel-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateAll();
+}
+
+function getFiltered() {
+  return RAW_DATA.filter(d => {
+    if (activeRIO !== 'ALL' && d.rio !== activeRIO) return false;
+    if (activeType !== 'ALL' && d.type !== activeType) return false;
+    if (activeFuel !== 'ALL') {
+      const fuelChar = activeFuel === 'DG' ? 'DG' : 'PG';
+      // We don't have DG/PG separation here; skip fuel filter on this aggregated data
+    }
+    return true;
+  });
+}
+
+// ===== KPI UPDATE =====
+function updateKPIs() {
+  const data = getFiltered();
+  const totalStock = data.reduce((s,d) => s + d.stock, 0);
+  const totalReq = data.reduce((s,d) => s + d.req, 0);
+  const totalPurchase = data.reduce((s,d) => s + d.aprPurchase, 0);
+  const totalUsage = data.reduce((s,d) => s + d.aprUsage, 0);
+  const dailyBurn = DAILY.usage.reduce((a,b) => a+b, 0) / 14;
+  const coverageDays = totalStock / (dailyBurn || 1);
+  const gap = totalStock - totalReq;
+  const coveragePct = (totalStock / totalReq * 100).toFixed(1);
+
+  document.getElementById('kpi-stock').textContent = Math.round(totalStock).toLocaleString();
+  document.getElementById('kpi-purchase').textContent = Math.round(totalPurchase).toLocaleString();
+  document.getElementById('kpi-usage').textContent = Math.round(totalUsage).toLocaleString();
+  document.getElementById('kpi-days').textContent = Math.round(coverageDays);
+  document.getElementById('kpi-gap').textContent = (gap >= 0 ? '+' : '') + Math.round(gap).toLocaleString();
+  document.getElementById('kpi-gap-pct').textContent = `ltr · ${coveragePct}% covered`;
+  document.getElementById('kpi-coverage').textContent = coveragePct + '%';
+
+  // Health score
+  let score = 0;
+  score += Math.min(40, (parseFloat(coveragePct) / 100) * 40);
+  score += Math.min(20, (totalPurchase / Math.max(totalUsage, 1)) * 10);
+  score += Math.min(20, Math.min(coverageDays / 90, 1) * 20);
+  score += 10; // base
+  const hs = Math.round(Math.min(100, score));
+  document.getElementById('health-score').textContent = hs;
+  document.getElementById('health-score').style.color = hs >= 75 ? '#00c48c' : hs >= 50 ? '#e8820c' : '#e53e3e';
+  document.getElementById('score-detail').innerHTML = `
+    Coverage: ${coveragePct}%<br>
+    Purchase/Usage: ${(totalPurchase/Math.max(totalUsage,1)*100).toFixed(0)}%<br>
+    Days of cover: ${Math.round(coverageDays)}<br>
+    Status: ${hs >= 75 ? '✅ Healthy' : hs >= 50 ? '⚠️ At Risk' : '🔴 Critical'}
+  `;
+}
+
+// ===== GAUGE UPDATE =====
+function updateGauges() {
+  const el = document.getElementById('gauge-grid');
+  const rios = activeRIO === 'ALL' ? ['RIO1','RIO2','RIO3','RIO4'] : [activeRIO];
+  
+  const rioAgg = {};
+  getFiltered().forEach(d => {
+    if (!rioAgg[d.rio]) rioAgg[d.rio] = {stock:0,req:0};
+    rioAgg[d.rio].stock += d.stock;
+    rioAgg[d.rio].req += d.req;
+  });
+
+  el.innerHTML = rios.map(rio => {
+    const s = rioAgg[rio] || {stock:0,req:0};
+    const pct = s.req > 0 ? Math.min(100, (s.stock/s.req*100)) : 0;
+    const color = pct >= 90 ? 'var(--green)' : pct >= 70 ? 'var(--amber)' : 'var(--red-soft)';
+    const status = pct >= 90 ? '✅ Safe' : pct >= 70 ? '⚠️ At Risk' : '🔴 Critical';
+    return `<div class="gauge-card">
+      <div class="gauge-title">${rio}</div>
+      <div class="gauge-pct" style="color:${color}">${pct.toFixed(1)}%</div>
+      <div class="gauge-bar-wrap"><div class="gauge-bar" style="width:${pct}%;background:${color}"></div></div>
+      <div class="gauge-sub">Stock: ${Math.round(s.stock).toLocaleString()} ltr</div>
+      <div class="gauge-sub">Req: ${Math.round(s.req).toLocaleString()} ltr</div>
+      <div style="margin-top:6px;font-size:0.65rem;font-weight:600;color:${color}">${status}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== CHART: TREND LINE =====
+function buildTrendChart() {
+  const ctx = document.getElementById('chart-trend').getContext('2d');
+  if (charts.trend) charts.trend.destroy();
+  charts.trend = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: DAILY.dates.map(d => d.replace('Apr-','Apr ')),
+      datasets: [
+        {
+          label: 'Daily Purchase (ltr)',
+          data: DAILY.purchase,
+          borderColor: COLORS.purchase,
+          backgroundColor: 'rgba(0,196,140,0.08)',
+          borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false,
+          pointBackgroundColor: COLORS.purchase
+        },
+        {
+          label: 'Daily Usage (ltr)',
+          data: DAILY.usage,
+          borderColor: COLORS.usage,
+          backgroundColor: 'rgba(232,130,12,0.08)',
+          borderWidth: 2, pointRadius: 4, tension: 0.3, fill: false,
+          pointBackgroundColor: COLORS.usage
+        },
+        {
+          label: 'Forecast Requirement',
+          data: DAILY.forecast.map(v => Math.round(v/100)),
+          borderColor: COLORS.forecast,
+          borderDash: [4,4], borderWidth: 1.5, pointRadius: 0, tension: 0,
+          yAxisID: 'y2'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 10 }, color: '#8899bb' } },
+        tooltip: { backgroundColor: '#0f2040', borderColor: 'rgba(45,122,238,0.3)', borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { font: { size: 9 } },
+          title: { display: true, text: 'Litres', font: { size: 9 }, color: '#8899bb' }
+        },
+        y2: { position: 'right', grid: { display: false },
+          ticks: { font: { size: 9 }, callback: v => (v*100/1000).toFixed(0)+'k' }
+        }
+      }
+    }
+  });
+}
+
+// ===== CHART: DONUT =====
+function buildDonutChart() {
+  const ctx = document.getElementById('chart-donut').getContext('2d');
+  if (charts.donut) charts.donut.destroy();
+  const rioAgg = {};
+  getFiltered().forEach(d => {
+    rioAgg[d.rio] = (rioAgg[d.rio] || 0) + d.stock;
+  });
+  charts.donut = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(rioAgg),
+      datasets: [{
+        data: Object.values(rioAgg).map(v => Math.round(v)),
+        backgroundColor: [COLORS.RIO1, COLORS.RIO2, COLORS.RIO3, COLORS.RIO4],
+        borderColor: 'rgba(10,22,40,0.8)', borderWidth: 2, hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '68%',
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 10 }, padding: 12 } },
+        tooltip: {
+          backgroundColor: '#0f2040', borderColor: 'rgba(45,122,238,0.3)', borderWidth: 1,
+          callbacks: { label: ctx => `${ctx.label}: ${ctx.parsed.toLocaleString()} ltr (${(ctx.parsed / Object.values(rioAgg).reduce((a,b)=>a+b,0)*100).toFixed(1)}%)` }
+        }
+      }
+    }
+  });
+}
+
+// ===== CHART: GROUPED BAR =====
+function buildGroupedBar() {
+  const ctx = document.getElementById('chart-grouped-bar').getContext('2d');
+  if (charts.grouped) charts.grouped.destroy();
+  const rios = ['RIO1','RIO2','RIO3','RIO4'];
+  const rioData = {};
+  rios.forEach(r => rioData[r] = {stock:0,req:0,purchase:0,usage:0});
+  getFiltered().forEach(d => {
+    if (rioData[d.rio]) {
+      rioData[d.rio].stock += d.stock;
+      rioData[d.rio].req += d.req;
+      rioData[d.rio].purchase += d.aprPurchase;
+      rioData[d.rio].usage += d.aprUsage;
+    }
+  });
+  charts.grouped = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rios,
+      datasets: [
+        { label: 'Present Stock', data: rios.map(r => Math.round(rioData[r].stock)), backgroundColor: 'rgba(45,122,238,0.7)', borderRadius: 3 },
+        { label: 'Requirement (Apr–Jun)', data: rios.map(r => Math.round(rioData[r].req)), backgroundColor: 'rgba(229,62,62,0.5)', borderRadius: 3 },
+        { label: 'Apr Purchase', data: rios.map(r => Math.round(rioData[r].purchase)), backgroundColor: 'rgba(0,196,140,0.7)', borderRadius: 3 },
+        { label: 'Apr Usage', data: rios.map(r => Math.round(rioData[r].usage)), backgroundColor: 'rgba(232,130,12,0.7)', borderRadius: 3 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 9 } } },
+        tooltip: { backgroundColor: '#0f2040', borderColor: 'rgba(45,122,238,0.3)', borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v, font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ===== CHART: COVERAGE % =====
+function buildCoverageChart() {
+  const ctx = document.getElementById('chart-coverage').getContext('2d');
+  if (charts.coverage) charts.coverage.destroy();
+  const labels = ['RIO1\nSComm','RIO1\nSTL','RIO2\nSComm','RIO2\nSTL','RIO3\nSComm','RIO3\nSTL','RIO4\nSComm','RIO4\nSTL'];
+  const pcts = [
+    RIO_SCOMM_STL.RIO1.scomm.stock/RIO_SCOMM_STL.RIO1.scomm.req*100,
+    RIO_SCOMM_STL.RIO1.stl.stock/RIO_SCOMM_STL.RIO1.stl.req*100,
+    RIO_SCOMM_STL.RIO2.scomm.stock/RIO_SCOMM_STL.RIO2.scomm.req*100,
+    RIO_SCOMM_STL.RIO2.stl.stock/RIO_SCOMM_STL.RIO2.stl.req*100,
+    RIO_SCOMM_STL.RIO3.scomm.stock/RIO_SCOMM_STL.RIO3.scomm.req*100,
+    RIO_SCOMM_STL.RIO3.stl.stock/RIO_SCOMM_STL.RIO3.stl.req*100,
+    RIO_SCOMM_STL.RIO4.scomm.stock/RIO_SCOMM_STL.RIO4.scomm.req*100,
+    RIO_SCOMM_STL.RIO4.stl.stock/RIO_SCOMM_STL.RIO4.stl.req*100,
+  ].map(v => Math.round(v));
+
+  charts.coverage = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Coverage %',
+        data: pcts,
+        backgroundColor: pcts.map(v => v >= 90 ? 'rgba(0,196,140,0.75)' : v >= 70 ? 'rgba(232,130,12,0.75)' : 'rgba(229,62,62,0.75)'),
+        borderRadius: 4
+      }, {
+        label: 'Target (100%)',
+        data: new Array(8).fill(100),
+        type: 'line', borderColor: 'rgba(136,153,187,0.5)', borderDash: [4,4],
+        borderWidth: 1.5, pointRadius: 0, fill: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 9 } } },
+        tooltip: { backgroundColor: '#0f2040', borderColor: 'rgba(45,122,238,0.3)', borderWidth: 1 }
+      },
+      scales: {
+        x: { max: 120, grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { callback: v => v+'%', font: { size: 9 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ===== CHART: RIO DAILY =====
+function buildRIODailyChart() {
+  const ctx = document.getElementById('chart-rio-daily').getContext('2d');
+  if (charts.rioDaily) charts.rioDaily.destroy();
+  const rios = activeRIO === 'ALL' ? ['RIO1','RIO2','RIO3','RIO4'] : [activeRIO];
+  const datasets = rios.map((rio, i) => ({
+    label: `${rio} Usage`,
+    data: DAILY.rio[rio].usage.map(v => Math.round(v)),
+    borderColor: Object.values(COLORS).slice(0, 4)[i],
+    backgroundColor: 'transparent',
+    borderWidth: 2, pointRadius: 3, tension: 0.3
+  }));
+
+  charts.rioDaily = new Chart(ctx, {
+    type: 'line',
+    data: { labels: DAILY.dates.map(d => d.replace('Apr-','Apr ')), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 9 } } }, tooltip: { backgroundColor: '#0f2040', borderWidth: 1 } },
+      scales: {
+        x: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { font: { size: 9 }, callback: v => v >= 1000 ? (v/1000).toFixed(1)+'k' : v } }
+      }
+    }
+  });
+}
+
+// ===== CHART: WATERFALL =====
+function buildWaterfallChart() {
+  const ctx = document.getElementById('chart-waterfall').getContext('2d');
+  if (charts.waterfall) charts.waterfall.destroy();
+  const cumNetArr = [];
+  let cumNet = 0;
+  for (let i = 0; i < DAILY.dates.length; i++) {
+    cumNet += (DAILY.purchase[i] - DAILY.usage[i]);
+    cumNetArr.push(Math.round(cumNet));
+  }
+  charts.waterfall = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: DAILY.dates.map(d => d.replace('Apr-','Apr ')),
+      datasets: [{
+        label: 'Cumulative Net (Purchase − Usage)',
+        data: cumNetArr,
+        backgroundColor: cumNetArr.map(v => v >= 0 ? 'rgba(0,196,140,0.7)' : 'rgba(229,62,62,0.7)'),
+        borderRadius: 3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#0f2040', borderWidth: 1,
+          callbacks: { label: ctx => `Net: ${ctx.raw.toLocaleString()} ltr` }
+        }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 } } },
+        y: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ===== HEATMAP =====
+function buildHeatmap() {
+  const container = document.getElementById('heatmap-container');
+  const data = getFiltered();
+  const scMap = {};
+  data.forEach(d => {
+    if (!scMap[d.sc]) scMap[d.sc] = { rio: d.rio, usage: {}, sc: d.sc };
+  });
+
+  // Build per-SC per-day usage (we'll use proportion of daily totals)
+  const topSCs = Object.keys(scMap).filter(sc => {
+    const d = data.filter(r => r.sc === sc);
+    return d.reduce((s,r) => s + r.aprUsage, 0) > 30;
+  }).sort((a,b) => {
+    const ua = data.filter(r => r.sc === a).reduce((s,r) => s+r.aprUsage, 0);
+    const ub = data.filter(r => r.sc === b).reduce((s,r) => s+r.aprUsage, 0);
+    return ub - ua;
+  }).slice(0, 16);
+
+  const dateLabels = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14'];
+  
+  // Estimate SC usage by proportional split of daily totals
+  const scUsageEst = {};
+  topSCs.forEach(sc => {
+    const scData = data.filter(r => r.sc === sc);
+    const totalSCUsage = scData.reduce((s,r) => s + r.aprUsage, 0);
+    const totalAllUsage = data.reduce((s,r) => s + r.aprUsage, 0);
+    const proportion = totalAllUsage > 0 ? totalSCUsage / totalAllUsage : 0;
+    scUsageEst[sc] = DAILY.usage.map(dayTotal => dayTotal * proportion);
+  });
+
+  const allVals = topSCs.flatMap(sc => scUsageEst[sc]);
+  const maxVal = Math.max(...allVals);
+
+  function getColor(val) {
+    const t = val / maxVal;
+    const r = Math.round(10 + t * (229-10));
+    const g = Math.round(22 + t * (62-22));
+    const b = Math.round(40 + t * (62-40));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const getRioColor = { RIO1: '#2d7aee', RIO2: '#f0a500', RIO3: '#00c48c', RIO4: '#e53e3e' };
+
+  let html = `<table class="heatmap-table"><thead><tr>
+    <th style="text-align:left">Subcenter</th>
+    <th>RIO</th>
+    ${dateLabels.map(d => `<th>Apr ${d}</th>`).join('')}
+    <th>Total</th>
+  </tr></thead><tbody>`;
+
+  topSCs.forEach(sc => {
+    const rio = data.find(r => r.sc === sc)?.rio || '';
+    const vals = scUsageEst[sc];
+    const total = vals.reduce((a,b) => a+b, 0);
+    html += `<tr>
+      <td class="sc-label">${sc}</td>
+      <td style="color:${getRioColor[rio]};font-weight:600">${rio}</td>
+      ${vals.map(v => `<td style="background:${getColor(v)};color:${v/maxVal>0.5?'#fff':'#8899bb'}">${v>10?Math.round(v):''}</td>`).join('')}
+      <td style="color:var(--white);font-weight:600">${Math.round(total).toLocaleString()}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+// ===== CHART: SC RANKED =====
+function buildSCRankChart() {
+  const ctx = document.getElementById('chart-sc-rank').getContext('2d');
+  if (charts.scRank) charts.scRank.destroy();
+
+  const scAgg = {};
+  getFiltered().forEach(d => {
+    if (!scAgg[d.sc]) scAgg[d.sc] = { usage: 0, rio: d.rio };
+    scAgg[d.sc].usage += d.aprUsage;
+  });
+
+  const sorted = Object.entries(scAgg).sort((a,b) => b[1].usage - a[1].usage).slice(0, 12);
+  const rioColorMap = { RIO1: 'rgba(45,122,238,0.75)', RIO2: 'rgba(240,165,0,0.75)', RIO3: 'rgba(0,196,140,0.75)', RIO4: 'rgba(229,62,62,0.75)' };
+
+  charts.scRank = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: sorted.map(([sc]) => sc),
+      datasets: [{
+        label: 'Apr Usage (ltr)',
+        data: sorted.map(([,v]) => Math.round(v.usage)),
+        backgroundColor: sorted.map(([,v]) => rioColorMap[v.rio]),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: '#0f2040', borderWidth: 1 }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(45,122,238,0.08)' }, ticks: { font: { size: 9 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ===== CHART: SCOMM vs STL =====
+function buildSCommSTLChart() {
+  const ctx = document.getElementById('chart-scomm-stl').getContext('2d');
+  if (charts.scommstl) charts.scommstl.destroy();
+  const rios = ['RIO1','RIO2','RIO3','RIO4'];
+  charts.scommstl = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rios,
+      datasets: [
+        { label: 'SComm Stock', data: rios.map(r => RIO_SCOMM_STL[r].scomm.stock), backgroundColor: 'rgba(45,122,238,0.6)', borderRadius: 3 },
+        { label: 'SComm Req', data: rios.map(r => RIO_SCOMM_STL[r].scomm.req), backgroundColor: 'rgba(45,122,238,0.2)', borderRadius: 3 },
+        { label: 'STL Stock', data: rios.map(r => RIO_SCOMM_STL[r].stl.stock), backgroundColor: 'rgba(0,196,140,0.6)', borderRadius: 3 },
+        { label: 'STL Req', data: rios.map(r => RIO_SCOMM_STL[r].stl.req), backgroundColor: 'rgba(0,196,140,0.2)', borderRadius: 3 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 9 } } }, tooltip: { backgroundColor: '#0f2040', borderWidth: 1 } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: 'rgba(45,122,238,0.08)' }, stacked: false, ticks: { font: { size: 9 }, callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v } }
+      }
+    }
+  });
+}
+
+// ===== PLANNING TABLE =====
+function buildPlanningTable() {
+  const el = document.getElementById('planning-table');
+  const data = getFiltered();
+  const scAgg = {};
+
+  data.forEach(d => {
+    const key = `${d.rio}||${d.sc}`;
+    if (!scAgg[key]) scAgg[key] = { rio: d.rio, sc: d.sc, stock: 0, req: 0, usage: 0 };
+    scAgg[key].stock += d.stock;
+    scAgg[key].req += d.req;
+    scAgg[key].usage += d.aprUsage;
+  });
+
+  const rioGroups = {};
+  Object.values(scAgg).forEach(r => {
+    if (!rioGroups[r.rio]) rioGroups[r.rio] = [];
+    rioGroups[r.rio].push(r);
+  });
+
+  let html = `<thead><tr>
+    <th>RIO / SC</th>
+    <th>Type</th>
+    <th>Present Stock</th>
+    <th>Req Apr–Jun</th>
+    <th>Gap (ltr)</th>
+    <th>Coverage %</th>
+    <th>Status</th>
+  </tr></thead><tbody>`;
+
+  ['RIO1','RIO2','RIO3','RIO4'].forEach(rio => {
+    if (!rioGroups[rio]) return;
+    const rioTotals = rioGroups[rio].reduce((a,r) => ({
+      stock: a.stock+r.stock, req: a.req+r.req
+    }), {stock:0,req:0});
+    const rioPct = (rioTotals.stock/rioTotals.req*100).toFixed(1);
+    const rioGap = Math.round(rioTotals.stock - rioTotals.req);
+
+    html += `<tr class="rio-row">
+      <td colspan="2">${rio}</td>
+      <td>${Math.round(rioTotals.stock).toLocaleString()}</td>
+      <td>${Math.round(rioTotals.req).toLocaleString()}</td>
+      <td style="color:${rioGap>=0?'var(--green)':'var(--red-soft)'}">${rioGap >= 0 ? '+' : ''}${rioGap.toLocaleString()}</td>
+      <td>${rioPct}%</td>
+      <td><span class="badge ${rioPct>=90?'safe':rioPct>=70?'risk':'critical'}">${rioPct>=90?'SAFE':rioPct>=70?'AT RISK':'CRITICAL'}</span></td>
+    </tr>`;
+
+    rioGroups[rio].sort((a,b) => a.sc.localeCompare(b.sc)).forEach(r => {
+      const pct = r.req > 0 ? (r.stock/r.req*100) : 100;
+      const gap = Math.round(r.stock - r.req);
+      const status = pct >= 90 ? 'safe' : pct >= 70 ? 'risk' : 'critical';
+      const label = pct >= 90 ? 'SAFE' : pct >= 70 ? 'AT RISK' : 'CRITICAL';
+      html += `<tr>
+        <td style="padding-left:20px">${r.sc}</td>
+        <td>—</td>
+        <td>${Math.round(r.stock).toLocaleString()}</td>
+        <td>${Math.round(r.req).toLocaleString()}</td>
+        <td style="color:${gap>=0?'var(--green)':'var(--red-soft)'}">${gap>=0?'+':''}${gap.toLocaleString()}</td>
+        <td style="color:${pct>=90?'var(--green)':pct>=70?'var(--amber)':'var(--red-soft)'}">${pct.toFixed(1)}%</td>
+        <td><span class="badge ${status}">${label}</span></td>
+      </tr>`;
+    });
+  });
+  html += '</tbody>';
+  el.innerHTML = html;
+}
+
+// ===== ALERTS =====
+function buildAlerts() {
+  const el = document.getElementById('alert-board');
+  const data = getFiltered();
+  const scAgg = {};
+  data.forEach(d => {
+    const key = `${d.rio}||${d.sc}`;
+    if (!scAgg[key]) scAgg[key] = { rio: d.rio, sc: d.sc, stock: 0, req: 0 };
+    scAgg[key].stock += d.stock;
+    scAgg[key].req += d.req;
+  });
+
+  const alerts = Object.values(scAgg)
+    .filter(r => r.req > 0)
+    .map(r => ({ ...r, pct: r.stock / r.req * 100 }))
+    .sort((a,b) => a.pct - b.pct)
+    .slice(0, 8);
+
+  el.innerHTML = alerts.map(a => {
+    const cls = a.pct < 70 ? 'critical' : a.pct < 90 ? 'risk' : 'safe';
+    const icon = a.pct < 70 ? '🚨' : a.pct < 90 ? '⚠️' : '✅';
+    return `<div class="alert-item ${cls}">
+      <span style="font-size:0.9rem">${icon}</span>
+      <div>
+        <div class="alert-sc">${a.rio} · ${a.sc}</div>
+        <div class="alert-detail">Stock: ${Math.round(a.stock).toLocaleString()} ltr | Need: ${Math.round(a.req).toLocaleString()} ltr | ${a.pct.toFixed(1)}% covered</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== INSIGHTS =====
+function buildInsights() {
+  const el = document.getElementById('insights-list');
+  const data = getFiltered();
+  const rioAgg = {};
+  data.forEach(d => {
+    if (!rioAgg[d.rio]) rioAgg[d.rio] = { usage: 0, stock: 0, req: 0 };
+    rioAgg[d.rio].usage += d.aprUsage;
+    rioAgg[d.rio].stock += d.stock;
+    rioAgg[d.rio].req += d.req;
+  });
+
+  const topUsageRIO = Object.entries(rioAgg).sort((a,b) => b[1].usage - a[1].usage)[0];
+  const lowestCovRIO = Object.entries(rioAgg).sort((a,b) => (a[1].stock/a[1].req) - (b[1].stock/b[1].req))[0];
+  const totalStock = data.reduce((s,d)=>s+d.stock,0);
+  const totalReq = data.reduce((s,d)=>s+d.req,0);
+  const totalUsage = data.reduce((s,d)=>s+d.aprUsage,0);
+  const totalPurchase = data.reduce((s,d)=>s+d.aprPurchase,0);
+  const dailyBurn = DAILY.usage.reduce((a,b)=>a+b,0) / 14;
+
+  const insights = [
+    { icon: '🔥', text: `<strong>${topUsageRIO[0]}</strong> is the highest fuel consumer in April with <strong>${Math.round(topUsageRIO[1].usage).toLocaleString()} ltr</strong> used — driven by its large STL fleet.` },
+    { icon: '⚠️', text: `<strong>${lowestCovRIO[0]}</strong> has the lowest stock coverage at <strong>${(lowestCovRIO[1].stock/lowestCovRIO[1].req*100).toFixed(1)}%</strong> of Apr–Jun requirements. Immediate procurement action required.` },
+    { icon: '📉', text: `Total procurement this month (${Math.round(totalPurchase).toLocaleString()} ltr) is <strong>${totalPurchase < totalUsage ? 'below' : 'above'}</strong> consumption (${Math.round(totalUsage).toLocaleString()} ltr). Net drawdown of ${Math.round(totalUsage-totalPurchase).toLocaleString()} ltr.` },
+    { icon: '📅', text: `At current daily burn rate of <strong>${Math.round(dailyBurn).toLocaleString()} ltr/day</strong>, present stock covers approximately <strong>${Math.round(totalStock/dailyBurn)} days</strong>.` },
+    { icon: '🎯', text: `Overall system coverage is <strong>${(totalStock/totalReq*100).toFixed(1)}%</strong>. All SComm segments are under 70% — RIO1 SComm at 49% is in <strong>critical alert</strong>.` },
+    { icon: '💡', text: `RIO3 holds <strong>74.8%</strong> of total system stock (${Math.round(rioAgg.RIO3?.stock||0).toLocaleString()} ltr), but its large STL fleet requires proportionally more. Shariatpur SComm and Bogura SComm are highest risk.` },
+    { icon: '📊', text: `Apr 7 saw the highest single-day usage spike at <strong>6,199 ltr</strong> — 4x the daily average. Procurement on Apr 13 was the highest single-day purchase at <strong>4,000 ltr</strong>.` },
+  ];
+
+  el.innerHTML = insights.map(i => `
+    <div class="insight-item">
+      <div class="insight-icon">${i.icon}</div>
+      <div class="insight-text">${i.text}</div>
+    </div>`).join('');
+}
+
+// ===== UPDATE ALL =====
+function updateAll() {
+  updateKPIs();
+  updateGauges();
+  buildDonutChart();
+  buildGroupedBar();
+  buildCoverageChart();
+  buildRIODailyChart();
+  buildHeatmap();
+  buildSCRankChart();
+  buildSCommSTLChart();
+  buildPlanningTable();
+  buildAlerts();
+  buildInsights();
+}
+
+// ===== INIT =====
+window.onload = () => {
+  buildTrendChart();
+  buildWaterfallChart();
+  updateAll();
+};
+</script>
+</body>
+</html>
