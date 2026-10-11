@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RIO-wise Network Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EEF2F6;--surface:#FFFFFF;--ink:#13223A;--muted:#5B6B82;--line:#D9E0E9;--head:#13223A;--headtxt:#FFFFFF;
+  --scomm:#0F8F86;--vendor:#E3A008;--ug:#5B4FC9;
+  --r1:#0F8F86;--r2:#2F6DB5;--r3:#E3A008;--r4:#C8553D;
+  --t1:#A9C6EA;--t2:#4F86C6;--t3:#17407A;
+  --rowalt:#F6F8FB;--tot:#E6EBF2;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1726;--surface:#16223A;--ink:#E7EDF7;--muted:#9AABC4;--line:#2A3A57;--head:#0A1220;--headtxt:#E7EDF7;
+  --scomm:#32C2B6;--vendor:#F2B72A;--ug:#9A90F2;
+  --r1:#32C2B6;--r2:#6FA3E6;--r3:#F2B72A;--r4:#EE8870;
+  --t1:#2E4B78;--t2:#5F9BE0;--t3:#B7D3F7;
+  --rowalt:#1A2842;--tot:#22324F;}}
+:root[data-theme="dark"]{
+  --bg:#0E1726;--surface:#16223A;--ink:#E7EDF7;--muted:#9AABC4;--line:#2A3A57;--head:#0A1220;--headtxt:#E7EDF7;
+  --scomm:#32C2B6;--vendor:#F2B72A;--ug:#9A90F2;
+  --r1:#32C2B6;--r2:#6FA3E6;--r3:#F2B72A;--r4:#EE8870;
+  --t1:#2E4B78;--t2:#5F9BE0;--t3:#B7D3F7;
+  --rowalt:#1A2842;--tot:#22324F;}
+html{height:auto;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Public Sans',system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;font-size:14px;line-height:1.5}
+.wrap{max-width:1280px;margin:0 auto;padding:0 20px 48px}
+header{background:var(--head);color:var(--headtxt);padding:28px 0 24px}
+header .wrap{padding-bottom:0}
+h1{margin:0 0 4px;font-size:26px;font-weight:700;letter-spacing:-.01em}
+header p{margin:0;opacity:.8;font-size:14px}
+h2{font-size:17px;font-weight:700;margin:36px 0 12px}
+h2 small{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-top:-1px;overflow:hidden}
+.kpi{padding:16px 18px;border-right:1px solid var(--line)}
+.kpi:last-child{border-right:0}
+.kpi b{display:block;font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.kpi span{color:var(--muted);font-size:12.5px}
+.kpi i{font-style:normal;font-size:12px;color:var(--muted);display:block;margin-top:2px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.panel h3{margin:0 0 2px;font-size:14px;font-weight:600}
+.panel p.sub{margin:0 0 10px;color:var(--muted);font-size:12.5px}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ch{position:relative;height:290px}
+.ch.tall{height:340px}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:9px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+th:first-child,td:first-child{text-align:left}
+thead th{background:var(--head);color:var(--headtxt);font-weight:600;font-size:12.5px;position:sticky;top:0}
+thead tr.grp th{text-align:center;border-bottom:1px solid rgba(255,255,255,.18);font-size:12px;opacity:.85}
+tbody tr:nth-child(even){background:var(--rowalt)}
+tfoot td{background:var(--tot);font-weight:700;border-bottom:0}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+.bar{display:inline-block;height:6px;border-radius:3px;background:var(--ug);vertical-align:middle;margin-left:8px}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.seg button{font:inherit;font-weight:600;padding:7px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--head);color:var(--headtxt);border-color:var(--head)}
+.seg button:focus-visible{outline:2px solid var(--scomm);outline-offset:2px}
+.notes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px;margin:0;padding:0;list-style:none}
+.notes li{padding-left:14px;border-left:3px solid var(--scomm)}
+.notes li b{font-weight:600}
+.foot{margin-top:28px;color:var(--muted);font-size:12.5px}
+@media(max-width:980px){.kpis{grid-template-columns:repeat(3,1fr)}.kpi:nth-child(3){border-right:0}.kpi{border-bottom:1px solid var(--line)}.grid,.grid3,.notes{grid-template-columns:1fr}}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.kpi:nth-child(3){border-right:1px solid var(--line)}.kpi:nth-child(2n){border-right:0}h1{font-size:21px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Network Overview by RIO</h1>
+  <p>Sub-Center network, backbone and telco site footprint across 4 RIOs and 26 Sub-Centers</p>
+</div></header>
+<main class="wrap">
+  <div class="kpis" id="kpis"></div>
+
+  <h2>RIO summary</h2>
+  <div class="panel scroll" style="padding:0"><table id="sumTable"></table></div>
+
+  <h2>Network and maintenance</h2>
+  <div class="grid">
+    <div class="panel"><h3>Network length by RIO</h3><p class="sub">Km, split by who maintains it</p><div class="ch"><canvas id="cNet"></canvas></div></div>
+    <div class="panel"><h3>Maintenance model</h3><p class="sub">Share of each RIO's network km: SComm vs vendor</p><div class="ch"><canvas id="cMix"></canvas></div></div>
+    <div class="panel"><h3>Share of total network</h3><p class="sub">Each RIO's portion of all network km</p><div class="ch"><canvas id="cShare"></canvas></div></div>
+    <div class="panel"><h3>Underground (UG) share</h3><p class="sub">UG km as % of total network km</p><div class="ch"><canvas id="cUG"></canvas></div></div>
+  </div>
+
+  <h2>Backbone, POPs and telco sites</h2>
+  <div class="grid">
+    <div class="panel"><h3>Major backbone links by capacity</h3><p class="sub">Number of links per RIO</p><div class="ch"><canvas id="cBB"></canvas></div></div>
+    <div class="panel"><h3>Telco sites and POPs</h3><p class="sub">Telco sites (left) and POPs excluding IF3 Union (right)</p><div class="ch"><canvas id="cSite"></canvas></div></div>
+  </div>
+
+  <h2>Largest Sub-Centers</h2>
+  <div class="grid">
+    <div class="panel"><h3>Top 10 by network length</h3><p class="sub">Km, SComm vs vendor maintained</p><div class="ch tall"><canvas id="cTopKm"></canvas></div></div>
+    <div class="panel"><h3>Top 10 by telco sites</h3><p class="sub">Number of telco sites, coloured by RIO</p><div class="ch tall"><canvas id="cTopSite"></canvas></div></div>
+  </div>
+
+  <h2>RIO drill-down<small>Sub-Center wise</small></h2>
+  <div class="seg" id="seg"></div>
+  <div class="grid" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)">
+    <div class="panel scroll" style="padding:0"><table id="scTable"></table></div>
+    <div class="panel"><h3 id="ddTitle"></h3><p class="sub">Network km by Sub-Center</p><div class="ch tall" id="ddWrap"><canvas id="cDD"></canvas></div></div>
+  </div>
+
+  <h2>Key observations</h2>
+  <div class="panel"><ul class="notes">
+    <li><b>Vendor-led network.</b> Vendors maintain 34,847 km, 76% of the 45,648 km network. RIO3 (97%) and RIO2 (93%) are almost fully outsourced.</li>
+    <li><b>RIO1 is the in-house core.</b> It holds 6,689 km of the 10,801 km SComm maintains (62%) and 41% of all telco sites, with about 2.5 km of network per site against 5 to 10 km in the other RIOs.</li>
+    <li><b>Concentration.</b> RIO2 has the longest network at 13,465 km, led by Sylhet at 4,105 km (9% of the total), followed by Rangpur and Mymensingh.</li>
+    <li><b>High-capacity backbone.</b> 1,291 major links, of which 439 (34%) are above 200G. RIO1 and RIO2 carry 806 of them (62%).</li>
+    <li><b>UG coverage is thin.</b> UG is 17.7% of the network overall, from 11.9% in RIO2 to 24.4% in RIO3.</li>
+    <li><b>Span of control.</b> Sarker Shahin Ahmed heads both Banani and Mirpur Sub-Centers in RIO1.</li>
+  </ul></div>
+  <p class="foot">Source: Sub-Center Head with Network Details. Total Network = SComm + vendor maintained km. UG is read as a part of Total Network. POPs exclude IF3 Union. Contact, email and address fields are not shown.</p>
+</main>
+<script>
+const DATA=[{"rio": "RIO1", "sc": "Banani", "head": "Sarker Shahin Ahmed", "desig": "Manager", "scomm": 435.102, "vendor": 0.0, "total": 435.102, "ug": 199.0, "pop": 2, "b1": 1, "b2": 32, "b3": 47, "telco": 352}, {"rio": "RIO1", "sc": "Kawranbazar", "head": "Anupam Hossain Purnam", "desig": "Manager", "scomm": 262.475, "vendor": 0.0, "total": 262.475, "ug": 100.0, "pop": 1, "b1": 12, "b2": 3, "b3": 31, "telco": 193}, {"rio": "RIO1", "sc": "Mirpur", "head": "Sarker Shahin Ahmed", "desig": "Manager", "scomm": 440.197, "vendor": 0.0, "total": 440.197, "ug": 118.0, "pop": 2, "b1": 0, "b2": 17, "b3": 10, "telco": 401}, {"rio": "RIO1", "sc": "Paltan", "head": "Ikhtiar Uddin Ahmed", "desig": "Manager", "scomm": 1309.478, "vendor": 0.0, "total": 1309.478, "ug": 171.0, "pop": 6, "b1": 1, "b2": 30, "b3": 28, "telco": 694}, {"rio": "RIO1", "sc": "Dhanmondi", "head": "Md. Azmir Hossain", "desig": "Senior Manager", "scomm": 402.311, "vendor": 402.105, "total": 804.416, "ug": 181.0, "pop": 7, "b1": 11, "b2": 4, "b3": 4, "telco": 406}, {"rio": "RIO1", "sc": "Uttara", "head": "Md Sifatullah", "desig": "Manager", "scomm": 886.761, "vendor": 0.0, "total": 886.761, "ug": 272.0, "pop": 18, "b1": 31, "b2": 10, "b3": 21, "telco": 365}, {"rio": "RIO1", "sc": "Narayanganj", "head": "Kazi Mizanur Rahman", "desig": "Manager", "scomm": 916.864, "vendor": 565.0, "total": 1481.864, "ug": 339.0, "pop": 16, "b1": 17, "b2": 12, "b3": 22, "telco": 404}, {"rio": "RIO1", "sc": "Savar", "head": "Rony Saha", "desig": "Deputy Manager", "scomm": 472.563, "vendor": 915.0, "total": 1387.563, "ug": 124.0, "pop": 13, "b1": 10, "b2": 16, "b3": 3, "telco": 312}, {"rio": "RIO1", "sc": "Gazipur", "head": "Mrinal Kanti", "desig": "Deputy Manager", "scomm": 1563.352, "vendor": 0.0, "total": 1563.352, "ug": 243.0, "pop": 13, "b1": 21, "b2": 11, "b3": 7, "telco": 370}, {"rio": "RIO2", "sc": "Sylhet", "head": "Jhantu Kumar Das", "desig": "Deputy Manager", "scomm": 84.704, "vendor": 4020.139, "total": 4104.843, "ug": 702.077, "pop": 36, "b1": 61, "b2": 16, "b3": 30, "telco": 645}, {"rio": "RIO2", "sc": "CTG_North", "head": "Mizanul Islam", "desig": "Senior Manager", "scomm": 265.773, "vendor": 1726.0, "total": 1991.773, "ug": 148.012, "pop": 16, "b1": 15, "b2": 12, "b3": 26, "telco": 435}, {"rio": "RIO2", "sc": "CTG_South", "head": "Mohammad Tanvir Yasir", "desig": "Manager", "scomm": 269.825, "vendor": 946.38, "total": 1216.205, "ug": 124.179, "pop": 7, "b1": 17, "b2": 7, "b3": 17, "telco": 372}, {"rio": "RIO2", "sc": "Cox's bazar", "head": "Md. Mostafa Amin", "desig": "Deputy Manager", "scomm": 0.353, "vendor": 836.75, "total": 837.103, "ug": 180.18, "pop": 10, "b1": 12, "b2": 1, "b3": 16, "telco": 162}, {"rio": "RIO2", "sc": "Feni", "head": "Akm Khaled Bin Abedin", "desig": "Manager", "scomm": 50.353, "vendor": 2130.0, "total": 2180.353, "ug": 201.904, "pop": 6, "b1": 16, "b2": 10, "b3": 14, "telco": 325}, {"rio": "RIO2", "sc": "Cumilla", "head": "Md. Dipu Khandaker", "desig": "Senior Manager", "scomm": 240.011, "vendor": 2895.0, "total": 3135.011, "ug": 246.507, "pop": 16, "b1": 53, "b2": 19, "b3": 51, "telco": 550}, {"rio": "RIO3", "sc": "Faridpur", "head": "Sujoy Saha", "desig": "Manager", "scomm": 156.0, "vendor": 1319.0, "total": 1475.0, "ug": 387.0, "pop": 21, "b1": 2, "b2": 16, "b3": 15, "telco": 138}, {"rio": "RIO3", "sc": "Shariatpur", "head": "Jagobandhu Kumar Mistry", "desig": "Manager", "scomm": 0.0, "vendor": 898.0, "total": 898.0, "ug": 187.0, "pop": 8, "b1": 1, "b2": 11, "b3": 3, "telco": 107}, {"rio": "RIO3", "sc": "Barishal", "head": "Md Sarwar Zahan", "desig": "Manager", "scomm": 84.0, "vendor": 2310.0, "total": 2394.0, "ug": 723.0, "pop": 43, "b1": 6, "b2": 22, "b3": 8, "telco": 284}, {"rio": "RIO3", "sc": "Khulna", "head": "Liton Kumar Ray", "desig": "Manager", "scomm": 45.815, "vendor": 2843.043, "total": 2888.858, "ug": 826.556, "pop": 42, "b1": 16, "b2": 12, "b3": 3, "telco": 257}, {"rio": "RIO3", "sc": "Jashore", "head": "Md Abdullah Al - Mamun", "desig": "Manager", "scomm": 1.387, "vendor": 1460.0, "total": 1461.387, "ug": 253.644, "pop": 13, "b1": 32, "b2": 9, "b3": 26, "telco": 152}, {"rio": "RIO3", "sc": "Kushtia", "head": "Md. Ashrafuz Zaman", "desig": "Manager", "scomm": 0.0, "vendor": 1362.0, "total": 1362.0, "ug": 181.0, "pop": 4, "b1": 12, "b2": 5, "b3": 6, "telco": 123}, {"rio": "RIO4", "sc": "Rajshahi", "head": "Md Mahbubul Haque", "desig": "Manager", "scomm": 404.625, "vendor": 1065.74, "total": 1470.365, "ug": 289.063, "pop": 7, "b1": 31, "b2": 5, "b3": 10, "telco": 228}, {"rio": "RIO4", "sc": "Rangpur", "head": "SM Tanjir", "desig": "Manager", "scomm": 216.0, "vendor": 3295.0, "total": 3511.0, "ug": 531.0, "pop": 36, "b1": 49, "b2": 9, "b3": 7, "telco": 346}, {"rio": "RIO4", "sc": "Bogura", "head": "Md. Abdullah Al Mostari", "desig": "Manager", "scomm": 923.0, "vendor": 1238.0, "total": 2161.0, "ug": 399.0, "pop": 22, "b1": 42, "b2": 4, "b3": 19, "telco": 242}, {"rio": "RIO4", "sc": "Mymensingh", "head": "Md. Shamimul Alam", "desig": "Manager", "scomm": 1079.0, "vendor": 2345.0, "total": 3424.0, "ug": 811.0, "pop": 42, "b1": 31, "b2": 14, "b3": 10, "telco": 400}, {"rio": "RIO4", "sc": "Tangail", "head": "Md. Al Amin", "desig": "Deputy Manager", "scomm": 291.5, "vendor": 2274.4, "total": 2565.9, "ug": 140.0, "pop": 23, "b1": 38, "b2": 7, "b3": 5, "telco": 257}];
+const RIOS=['RIO1','RIO2','RIO3','RIO4'];
+const fmt=(n,d=0)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+const sum=(a,k)=>a.reduce((s,r)=>s+r[k],0);
+const agg=RIOS.map(r=>{const a=DATA.filter(x=>x.rio===r);return{rio:r,n:a.length,scomm:sum(a,'scomm'),vendor:sum(a,'vendor'),total:sum(a,'total'),ug:sum(a,'ug'),pop:sum(a,'pop'),b1:sum(a,'b1'),b2:sum(a,'b2'),b3:sum(a,'b3'),telco:sum(a,'telco')}});
+const T={n:DATA.length,scomm:sum(DATA,'scomm'),vendor:sum(DATA,'vendor'),total:sum(DATA,'total'),ug:sum(DATA,'ug'),pop:sum(DATA,'pop'),b1:sum(DATA,'b1'),b2:sum(DATA,'b2'),b3:sum(DATA,'b3'),telco:sum(DATA,'telco')};
+const bbT=T.b1+T.b2+T.b3;
+const cv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const rioColor=r=>cv('--r'+r.slice(3));
+
+document.getElementById('kpis').innerHTML=[
+ [fmt(T.total),'Total network (km)',fmt(T.scomm/T.total*100,0)+'% SComm, '+fmt(T.vendor/T.total*100,0)+'% vendor'],
+ [fmt(T.ug),'UG network (km)',fmt(T.ug/T.total*100,1)+'% of network'],
+ [fmt(T.telco),'Telco sites','across '+T.n+' Sub-Centers'],
+ [fmt(T.pop),'POPs','excluding IF3 Union'],
+ [fmt(bbT),'Major backbone links',fmt(T.b3)+' above 200G'],
+ [fmt(T.total/T.n),'Avg km per Sub-Center','4 RIOs']
+].map(k=>`<div class="kpi"><b>${k[0]}</b><span>${k[1]}</span><i>${k[2]}</i></div>`).join('');
+
+// summary table
+const rows=agg.map(a=>`<tr><td><span class="dot" style="background:${rioColor(a.rio)}"></span>${a.rio}</td><td>${a.n}</td><td>${fmt(a.scomm)}</td><td>${fmt(a.vendor)}</td><td><b>${fmt(a.total)}</b></td><td>${fmt(a.ug)}</td><td>${fmt(a.ug/a.total*100,1)}%</td><td>${fmt(a.pop)}</td><td>${fmt(a.b1)}</td><td>${fmt(a.b2)}</td><td>${fmt(a.b3)}</td><td>${fmt(a.telco)}</td></tr>`).join('');
+document.getElementById('sumTable').innerHTML=`<thead><tr class="grp"><th></th><th></th><th colspan="3">Network (km)</th><th colspan="2">Underground</th><th></th><th colspan="3">Backbone links (nos)</th><th></th></tr><tr><th>RIO</th><th>Sub-Centers</th><th>SComm</th><th>Vendor</th><th>Total</th><th>UG km</th><th>UG %</th><th>POPs</th><th>50G-100G</th><th>100G-200G</th><th>Above 200G</th><th>Telco sites</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total</td><td>${T.n}</td><td>${fmt(T.scomm)}</td><td>${fmt(T.vendor)}</td><td>${fmt(T.total)}</td><td>${fmt(T.ug)}</td><td>${fmt(T.ug/T.total*100,1)}%</td><td>${fmt(T.pop)}</td><td>${fmt(T.b1)}</td><td>${fmt(T.b2)}</td><td>${fmt(T.b3)}</td><td>${fmt(T.telco)}</td></tr></tfoot>`;
+
+// charts
+let charts=[];
+const mk=(id,cfg)=>{const c=new Chart(document.getElementById(id),cfg);charts.push(c);return c};
+let current='RIO1',ddChart=null;
+function base(extra={}){
+  const ink=cv('--ink'),mut=cv('--muted'),line=cv('--line');
+  return{responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{color:ink,boxWidth:12,boxHeight:12,font:{family:'Public Sans'}}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.parsed.y??c.parsed.x??c.parsed,c.dataset.dec||0)}}},
+    scales:{x:{ticks:{color:mut},grid:{color:line},border:{color:line}},y:{ticks:{color:mut},grid:{color:line},border:{color:line}}},...extra};
+}
+function draw(){
+  charts.forEach(c=>c.destroy());charts=[];ddChart=null;
+  const labels=RIOS,sc=cv('--scomm'),vn=cv('--vendor'),ink=cv('--ink'),surf=cv('--surface');
+  mk('cNet',{type:'bar',data:{labels,datasets:[{label:'SComm (km)',data:agg.map(a=>a.scomm),backgroundColor:sc},{label:'Vendor (km)',data:agg.map(a=>a.vendor),backgroundColor:vn}]},options:(()=>{const o=base();o.scales.x.stacked=o.scales.y.stacked=true;o.scales.x.grid.display=false;return o})()});
+  mk('cMix',{type:'bar',data:{labels,datasets:[{label:'SComm %',data:agg.map(a=>a.scomm/a.total*100),backgroundColor:sc,dec:1},{label:'Vendor %',data:agg.map(a=>a.vendor/a.total*100),backgroundColor:vn,dec:1}]},options:(()=>{const o=base({indexAxis:'y'});o.scales.x.stacked=o.scales.y.stacked=true;o.scales.x.max=100;o.scales.x.ticks.callback=v=>v+'%';o.scales.y.grid.display=false;o.plugins.tooltip.callbacks.label=c=>' '+c.dataset.label+': '+fmt(c.parsed.x,1)+'%';return o})()});
+  mk('cShare',{type:'doughnut',data:{labels,datasets:[{data:agg.map(a=>a.total),backgroundColor:RIOS.map(rioColor),borderColor:surf,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,animation:false,cutout:'58%',plugins:{legend:{position:'right',labels:{color:ink,boxWidth:12,font:{family:'Public Sans'}}},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmt(c.parsed)+' km ('+fmt(c.parsed/T.total*100,1)+'%)'}}}}});
+  mk('cUG',{type:'bar',data:{labels,datasets:[{label:'UG share (%)',data:agg.map(a=>a.ug/a.total*100),backgroundColor:cv('--ug'),dec:1}]},options:(()=>{const o=base();o.plugins.legend.display=false;o.scales.y.ticks.callback=v=>v+'%';o.scales.x.grid.display=false;o.plugins.tooltip.callbacks.label=c=>' UG share: '+fmt(c.parsed.y,1)+'%';return o})()});
+  mk('cBB',{type:'bar',data:{labels,datasets:[{label:'50G-100G',data:agg.map(a=>a.b1),backgroundColor:cv('--t1')},{label:'100G-200G',data:agg.map(a=>a.b2),backgroundColor:cv('--t2')},{label:'Above 200G',data:agg.map(a=>a.b3),backgroundColor:cv('--t3')}]},options:(()=>{const o=base();o.scales.x.stacked=o.scales.y.stacked=true;o.scales.x.grid.display=false;return o})()});
+  mk('cSite',{type:'bar',data:{labels,datasets:[{label:'Telco sites',data:agg.map(a=>a.telco),backgroundColor:cv('--r2'),yAxisID:'y'},{label:'POPs',data:agg.map(a=>a.pop),backgroundColor:cv('--r4'),yAxisID:'y1'}]},options:(()=>{const o=base();o.scales.x.grid.display=false;o.scales.y1={position:'right',ticks:{color:cv('--muted')},grid:{display:false},border:{color:cv('--line')}};return o})()});
+  const byKm=[...DATA].sort((a,b)=>b.total-a.total).slice(0,10);
+  mk('cTopKm',{type:'bar',data:{labels:byKm.map(r=>r.sc+' ('+r.rio+')'),datasets:[{label:'SComm (km)',data:byKm.map(r=>r.scomm),backgroundColor:sc},{label:'Vendor (km)',data:byKm.map(r=>r.vendor),backgroundColor:vn}]},options:(()=>{const o=base({indexAxis:'y'});o.scales.x.stacked=o.scales.y.stacked=true;o.scales.y.grid.display=false;o.scales.y.reverse=false;return o})()});
+  const bySite=[...DATA].sort((a,b)=>b.telco-a.telco).slice(0,10);
+  mk('cTopSite',{type:'bar',data:{labels:bySite.map(r=>r.sc),datasets:[{label:'Telco sites',data:bySite.map(r=>r.telco),backgroundColor:bySite.map(r=>rioColor(r.rio))}]},options:(()=>{const o=base({indexAxis:'y'});o.plugins.legend.display=false;o.scales.y.grid.display=false;o.plugins.tooltip.callbacks.label=c=>' Telco sites: '+fmt(c.parsed.x);return o})()});
+  drill();
+}
+function drill(){
+  const a=DATA.filter(r=>r.rio===current);
+  const tot=agg.find(x=>x.rio===current);
+  document.getElementById('ddTitle').textContent=current+' Sub-Centers';
+  const maxKm=Math.max(...a.map(r=>r.total));
+  document.getElementById('scTable').innerHTML=`<thead><tr><th>Sub-Center</th><th>Head</th><th>SComm km</th><th>Vendor km</th><th>Total km</th><th>UG km</th><th>POPs</th><th>Backbone</th><th>Telco sites</th></tr></thead><tbody>${a.map(r=>`<tr><td>${r.sc}</td><td style="text-align:left">${r.head}</td><td>${fmt(r.scomm)}</td><td>${fmt(r.vendor)}</td><td><b>${fmt(r.total)}</b><span class="bar" style="width:${Math.round(r.total/maxKm*50)}px"></span></td><td>${fmt(r.ug)}</td><td>${fmt(r.pop)}</td><td>${fmt(r.b1+r.b2+r.b3)}</td><td>${fmt(r.telco)}</td></tr>`).join('')}</tbody><tfoot><tr><td>${current} total</td><td></td><td>${fmt(tot.scomm)}</td><td>${fmt(tot.vendor)}</td><td>${fmt(tot.total)}</td><td>${fmt(tot.ug)}</td><td>${fmt(tot.pop)}</td><td>${fmt(tot.b1+tot.b2+tot.b3)}</td><td>${fmt(tot.telco)}</td></tr></tfoot>`;
+  if(ddChart){ddChart.destroy();charts=charts.filter(c=>c!==ddChart)}
+  document.getElementById('ddWrap').style.height=Math.max(260,a.length*38+70)+'px';
+  const o=base({indexAxis:'y'});o.scales.x.stacked=o.scales.y.stacked=true;o.scales.y.grid.display=false;
+  ddChart=mk('cDD',{type:'bar',data:{labels:a.map(r=>r.sc),datasets:[{label:'SComm (km)',data:a.map(r=>r.scomm),backgroundColor:cv('--scomm')},{label:'Vendor (km)',data:a.map(r=>r.vendor),backgroundColor:cv('--vendor')}]},options:o});
+}
+const seg=document.getElementById('seg');
+seg.innerHTML=RIOS.map(r=>`<button type="button" data-r="${r}" aria-pressed="${r===current}">${r}</button>`).join('');
+seg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;current=b.dataset.r;[...seg.children].forEach(x=>x.setAttribute('aria-pressed',x===b));drill()});
+draw();
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ddChart=null;draw()});
+</script>
+</body>
+</html>
